@@ -1,0 +1,32 @@
+stages:
+    - build
+    - test
+    - build_image
+    - deploy
+build_maven:
+    image: maven
+    stage: build
+    script:
+        - mvn package
+        - ls -l target/
+    artifacts:
+        paths:
+            - target/*.war
+test_my_project:
+    image: busybox
+    stage: test
+    script:
+        - echo " i am doing test"
+build_image:
+    image: docker:latest
+    stage: build_image
+    services:
+        - docker:dind  # Docker-in-Docker to enable building images
+    script:
+        - echo "Logging in to Docker Hub..."
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin  # Docker login
+        - docker build -t $DOCKER_USERNAME/tom:v1 .  # Build the image and tag it as tom:v1
+        - echo "Image tagged as tom:v1 successfully"
+        - docker tag $DOCKER_USERNAME/tom:v1 $DOCKER_USERNAME/tom:latest  # Tag image as latest
+        - docker push $DOCKER_USERNAME/tom:v1  # Push the image tagged with tom:v1
+        - docker push $DOCKER_USERNAME/tom:latest 
